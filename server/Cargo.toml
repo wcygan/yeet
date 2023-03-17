@@ -9,3 +9,5 @@ futures.workspace = true
 moka.workspace = true
 tokio.workspace = true
 tub.workspace = true
+serde.workspace = true
+bincode.workspace = true
