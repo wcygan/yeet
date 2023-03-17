@@ -1,10 +1,13 @@
-[package]
-name = "yap"
-version = "0.1.0"
-edition = "2021"
+[workspace]
+members = [
+    "client",
+    "server",
+    "common"
+]
 
-[dependencies]
+[workspace.dependencies]
 anyhow = "1.0.69"
 futures = "0.3.27"
+moka = { version = "0.10.0", features = ["future"] }
 tokio = { version = "1.26.0", features = ["full"] }
 tub = "0.3.5"
