@@ -1,6 +1,6 @@
 use anyhow::Result;
 use std::sync::Arc;
-use tokio::net::{ToSocketAddrs, UdpSocket};
+use tokio::net::UdpSocket;
 use tub::Pool;
 
 #[tokio::main]
@@ -9,11 +9,12 @@ async fn main() -> Result<()> {
 
     loop {
         let mut buf = [0; 512];
-        let (size, src) = listener.recv_from(&mut buf).await?;
+        let (_size, src) = listener.recv_from(&mut buf).await?;
         let pool = pool.clone();
+
         tokio::spawn(async move {
-            let writer = pool.acquire().await;
-            writer.send_to(buf.as_slice(), src).await?;
+            let socket = pool.acquire().await;
+            socket.send_to(buf.as_slice(), src).await?;
             Ok::<(), anyhow::Error>(())
         });
     }
