@@ -8,6 +8,9 @@ static DEFAULT_PORT: usize = 6565;
 
 type UdpPool = Arc<Pool<UdpSocket>>;
 
+mod client;
+mod server;
+
 #[tokio::main]
 async fn main() -> Result<()> {
     let _listener = UdpSocket::bind(format!("0.0.0.0:{}", DEFAULT_PORT)).await?;
