@@ -8,6 +8,13 @@ mod args;
 async fn main() -> Result<()> {
     let args = args::Args::parse();
     let addr = format!("{}:{}", args.address, args.port);
-    let _socket = UdpSocket::bind(addr).await?;
+    let socket = UdpSocket::bind("0.0.0.0:0").await?;
+
+    socket.send_to(b"hello", addr).await?;
+    let mut buf = [0; 512];
+    socket.recv_from(&mut buf).await?;
+
+    println!("{}", String::from_utf8_lossy(buf.as_slice()));
+
     Ok(())
 }
