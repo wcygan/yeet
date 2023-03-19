@@ -8,3 +8,4 @@ common = { path = "../common" }
 anyhow.workspace = true
 clap.workspace = true
 tokio.workspace = true
+lib-wc.workspace = true

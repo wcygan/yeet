@@ -1,18 +1,20 @@
 use anyhow::Result;
 use clap::Parser;
 use common::{FromServer, Socket, ToServer};
+use lib_wc::sync::ShutdownController;
 use std::future::Future;
 use std::io::{self, BufRead, Write};
 use std::net::SocketAddr;
+use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::net::UdpSocket;
-
+use tokio::select;
 mod args;
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<()> {
     let (mut conn, addr) = init().await?;
     let server_addr = addr.parse()?;
-    let name = input("enter your name: ")?;
+    let name = input_sync("enter your name: ")?;
 
     // Connect to the server
     let join = ToServer::join(name.clone());
@@ -24,20 +26,51 @@ async fn main() -> Result<()> {
         _ => return Err(anyhow::anyhow!("Unable to connect to the server. Goodbye!")),
     }
 
+    let shutdown = ShutdownController::new();
+    let listener = shutdown.subscribe();
+
+    select! {
+        _ = tokio::signal::ctrl_c() => {
+            shutdown.shutdown().await
+        }
+        _ = do_work() => {}
+    }
+
     loop {
-        // TODO: select on keyboard input and UDP recv
-
-        let message = ToServer::message(input("> ")?);
-        conn.write::<ToServer>(&message, server_addr).await?;
-        let (value, _) = conn.read::<FromServer>().await?;
-
-        match value {
-            FromServer::Message { message } => {
-                println!("{}", message)
+        let reader = BufReader::new(tokio::io::stdin());
+        let mut lines = reader.lines();
+        println!("...");
+        select! {
+            _ = tokio::signal::ctrl_c() => {
+                break
+            },
+            line = lines.next_line() => {
+                let s = line.unwrap().unwrap();
+                conn.write::<ToServer>(
+                    &ToServer::Message { message: s },
+                    server_addr
+                );
+            },
+            msg = conn.read::<FromServer>() => {
+                match msg {
+                    Ok((FromServer::Message { message }, addr)) => {
+                        println!("{}", message)
+                    },
+                    Ok((FromServer::Ping, addr)) => {
+                        println!("ping")
+                    },
+                    Ok((FromServer::Ack, addr)) => {
+                        println!("ack")
+                    }
+                    _ => {}
+                }
             }
-            _ => {}
         }
     }
+
+    conn.write::<ToServer>(&ToServer::Leave, server_addr)
+        .await?;
+    return Ok(());
 }
 
 async fn init() -> Result<(Socket, String)> {
@@ -46,10 +79,14 @@ async fn init() -> Result<(Socket, String)> {
     Ok((Socket::new(socket), args.address))
 }
 
-fn input(prompt: &str) -> Result<String> {
+fn input_sync(prompt: &str) -> Result<String> {
     print!("{}", prompt);
     io::stdout().flush()?;
     let mut s = String::new();
     let _ = io::stdin().lock().read_line(&mut s)?;
     Ok(s.trim().to_owned())
+}
+
+async fn do_work() -> Result<()> {
+    Ok(())
 }

@@ -83,9 +83,20 @@ impl Processor {
                         peer.send(addr, e.clone()).await;
                     }
                 }
-                ToServer::Leave => {
-                    todo!()
-                }
+                ToServer::Leave => match self.clients.remove(&addr) {
+                    None => {}
+                    Some(client) => {
+                        let name = client.name();
+                        let s = format!("{} left", name);
+                        println!("{}", s);
+
+                        let e = FromServer::Message { message: s };
+
+                        for (_peer_addr, mut peer) in &mut self.clients {
+                            peer.send(addr, e.clone()).await;
+                        }
+                    }
+                },
                 ToServer::Pong => {
                     todo!()
                 }
