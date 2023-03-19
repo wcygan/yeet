@@ -60,10 +60,14 @@ impl Processor {
         while let Some((message, addr)) = self.chan.recv().await {
             match message {
                 ToServer::Join { name } => {
+                    println!("{} joined", name);
                     let pool = self.pool.clone();
                     let client = ClientHandle::new(name, addr, pool);
+
+                    // Add the client
                     self.clients.insert(addr, client);
 
+                    // Send acknowledgement
                     let _ = self
                         .pool
                         .acquire()
@@ -72,14 +76,12 @@ impl Processor {
                         .await;
                 }
                 ToServer::Message { message } => {
+                    println!("msg from {}: {}", addr, message);
                     let e = FromServer::Message { message };
-
-                    let _ = self
-                        .pool
-                        .acquire()
-                        .await
-                        .write::<FromServer>(&e, addr)
-                        .await;
+                    for (peer_addr, mut peer) in &mut self.clients {
+                        println!("sending message to {}", peer_addr);
+                        peer.send(addr, e.clone()).await;
+                    }
                 }
                 ToServer::Leave => {
                     todo!()
