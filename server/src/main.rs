@@ -1,4 +1,5 @@
 use anyhow::Result;
+use common::{FromServer, ToServer, UdpConnection};
 use std::sync::Arc;
 use tokio::net::UdpSocket;
 use tub::Pool;
@@ -6,24 +7,31 @@ use tub::Pool;
 #[tokio::main]
 async fn main() -> Result<()> {
     let (listener, pool) = get_sockets().await?;
+    let mut conn = UdpConnection::new(listener);
 
     loop {
-        let mut buf = [0; 512];
-        let (_size, src) = listener.recv_from(&mut buf).await?;
+        let (msg, src) = conn.read::<ToServer>().await?;
         let pool = pool.clone();
 
         tokio::spawn(async move {
-            let socket = pool.acquire().await;
-            socket.send_to(buf.as_slice(), src).await?;
+            match msg {
+                ToServer::Message { message } => {
+                    let t = FromServer::Message { message };
+                    let mut conn = pool.acquire().await;
+                    conn.write::<FromServer>(&t, src).await?;
+                }
+                _ => {}
+            }
+
             Ok::<(), anyhow::Error>(())
         });
     }
 }
 
-async fn get_sockets() -> Result<(UdpSocket, Arc<Pool<UdpSocket>>)> {
-    let mut writers: Vec<UdpSocket> = vec![];
+async fn get_sockets() -> Result<(UdpSocket, Arc<Pool<UdpConnection>>)> {
+    let mut writers: Vec<UdpConnection> = vec![];
     for _ in 0..10 {
-        writers.push(bind_any().await?)
+        writers.push(UdpConnection::new(bind_any().await?))
     }
 
     let listener = bind_any().await?;

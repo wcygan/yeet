@@ -1,30 +1,30 @@
 use anyhow::Result;
 use clap::Parser;
-use common::ToServer;
+use common::{FromServer, ToServer, UdpConnection};
 use tokio::net::UdpSocket;
 
 mod args;
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<()> {
-    let (socket, addr) = init().await?;
+    let (mut conn, addr) = init().await?;
+    let server_addr = addr.parse()?;
 
-    let _e = ToServer::Join {
-        name: String::from("Hello"),
+    let e = ToServer::Message {
+        message: String::from("Hello"),
     };
 
-    // Send "hello" & read the response into buffer
-    let mut buffer = [0; 512];
-    socket.send_to(b"hello", addr).await?;
-    socket.recv_from(&mut buffer).await?;
+    conn.write::<ToServer>(&e, server_addr).await?;
 
-    println!("{}", String::from_utf8_lossy(buffer.as_slice()));
+    let (t, _) = conn.read::<FromServer>().await?;
+    println!("{:?}", t);
+
     Ok(())
 }
 
-async fn init() -> Result<(UdpSocket, String)> {
+async fn init() -> Result<(UdpConnection, String)> {
     let args = args::Args::parse();
     let addr = format!("{}:{}", args.address, args.port);
     let socket = UdpSocket::bind("0.0.0.0:0").await?;
-    Ok((socket, addr))
+    Ok((UdpConnection::new(socket), addr))
 }

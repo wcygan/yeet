@@ -1,15 +1,16 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum ToServer {
     Join { name: String },
     Message { message: String },
     Leave,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum FromServer {
     Message { message: String },
+    Ping,
 }
 
 #[cfg(test)]
