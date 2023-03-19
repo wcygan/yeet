@@ -25,6 +25,8 @@ async fn main() -> Result<()> {
     }
 
     loop {
+        // TODO: select on keyboard input and UDP recv
+
         let message = ToServer::message(input("> ")?);
         conn.write::<ToServer>(&message, server_addr).await?;
         let (value, _) = conn.read::<FromServer>().await?;
