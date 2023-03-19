@@ -1,7 +1,8 @@
+use common::DEFAULT_ADDRESS;
+
 #[derive(clap::Parser)]
 pub struct Args {
-    #[arg(short = 'a', long = "address")]
+    /// An address, e.g., 127.0.0.1:8080
+    #[arg(short = 'a', long = "address", default_value = DEFAULT_ADDRESS)]
     pub address: String,
-    #[arg(short = 'p', long = "port")]
-    pub port: u16,
 }
