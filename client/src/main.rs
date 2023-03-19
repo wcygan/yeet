@@ -1,5 +1,4 @@
 use anyhow::Result;
-use clap::builder::Str;
 use clap::Parser;
 use common::ToServer;
 use tokio::net::UdpSocket;
@@ -10,7 +9,7 @@ mod args;
 async fn main() -> Result<()> {
     let (socket, addr) = init().await?;
 
-    let e = ToServer::Join {
+    let _e = ToServer::Join {
         name: String::from("Hello"),
     };
 

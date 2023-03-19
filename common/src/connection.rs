@@ -1,15 +1,28 @@
+use anyhow::Result;
 use bincode::{deserialize, serialize};
-use serde::{Deserialize, Serialize};
+use serde::de::DeserializeOwned;
+use serde::Serialize;
 use tokio::net::UdpSocket;
 
-pub struct Connection {
-    buffer: [u8; 512],
-    socket: UdpSocket,
+pub struct UdpConnection {
+    _buffer: [u8; 512],
+    _socket: UdpSocket,
 }
 
-impl Connection {
+impl UdpConnection {
     pub fn new(socket: UdpSocket) -> Self {
-        let mut buffer = [0; 512];
-        Self { buffer, socket }
+        let buffer = [0; 512];
+        Self {
+            _buffer: buffer,
+            _socket: socket,
+        }
+    }
+
+    pub async fn write<T: Serialize>(&mut self, _value: &T) -> Result<()> {
+        todo!()
+    }
+
+    pub async fn read<T: DeserializeOwned>(&mut self) -> Result<Option<T>> {
+        todo!()
     }
 }
