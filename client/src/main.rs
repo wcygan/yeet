@@ -6,15 +6,20 @@ mod args;
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<()> {
+    let (socket, addr) = init().await?;
+
+    // Send "hello" & read the response into buffer
+    let mut buffer = [0; 512];
+    socket.send_to(b"hello", addr).await?;
+    socket.recv_from(&mut buffer).await?;
+
+    println!("{}", String::from_utf8_lossy(buffer.as_slice()));
+    Ok(())
+}
+
+async fn init() -> Result<(UdpSocket, String)> {
     let args = args::Args::parse();
     let addr = format!("{}:{}", args.address, args.port);
     let socket = UdpSocket::bind("0.0.0.0:0").await?;
-
-    socket.send_to(b"hello", addr).await?;
-    let mut buf = [0; 512];
-    socket.recv_from(&mut buf).await?;
-
-    println!("{}", String::from_utf8_lossy(buf.as_slice()));
-
-    Ok(())
+    Ok((socket, addr))
 }

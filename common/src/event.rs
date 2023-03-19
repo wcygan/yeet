@@ -1,0 +1,33 @@
+use serde::{Deserialize, Serialize};
+
+#[derive(Serialize, Deserialize)]
+pub enum ToServer {
+    Join { name: String },
+    Message { message: String },
+    Leave,
+}
+
+#[derive(Serialize, Deserialize)]
+pub enum FromServer {
+    Message { message: String },
+}
+
+#[cfg(test)]
+mod tests {
+    static UDP_PACKET_SIZE: u16 = 512;
+    use super::*;
+
+    #[test]
+    fn size_of_to_server() {
+        // The size needs to be smaller than the size of a UDP packet
+        let size = std::mem::size_of::<ToServer>();
+        assert!(size < UDP_PACKET_SIZE as usize)
+    }
+
+    #[test]
+    fn size_of_from_server() {
+        // The size needs to be smaller than the size of a UDP packet
+        let size = std::mem::size_of::<FromServer>();
+        assert!(size < UDP_PACKET_SIZE as usize)
+    }
+}
