@@ -1,8 +1,10 @@
+use crate::actors::client::ClientHandle;
 use crate::args;
 use anyhow::Result;
 use clap::Parser;
 use common::{FromServer, Socket, ToServer};
 use dashmap::DashMap;
+use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::sync::Arc;
 use tokio::net::UdpSocket;
@@ -16,7 +18,7 @@ pub struct Listener {
 struct Processor {
     pool: Arc<Pool<Socket>>,
     chan: tokio::sync::mpsc::Receiver<(ToServer, SocketAddr)>,
-    clients: DashMap<SocketAddr, String>,
+    clients: HashMap<SocketAddr, ClientHandle>,
 }
 
 impl Listener {
@@ -27,7 +29,7 @@ impl Listener {
         let processor = Processor {
             pool,
             chan: rx,
-            clients: DashMap::new(),
+            clients: HashMap::new(),
         };
 
         tokio::spawn(async move { processor.run().await });
@@ -54,11 +56,13 @@ impl Listener {
 }
 
 impl Processor {
-    pub async fn run(mut self) {
+    async fn run(mut self) {
         while let Some((message, addr)) = self.chan.recv().await {
             match message {
                 ToServer::Join { name } => {
-                    // TODO: Add a new ClientHandle
+                    let pool = self.pool.clone();
+                    let client = ClientHandle::new(name, addr, pool);
+                    self.clients.insert(addr, client);
 
                     let _ = self
                         .pool

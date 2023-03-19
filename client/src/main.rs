@@ -13,12 +13,17 @@ async fn main() -> Result<()> {
     let (mut conn, addr) = init().await?;
     let server_addr = addr.parse()?;
     let name = input("enter your name: ")?;
+
+    // Connect to the server
     let join = ToServer::join(name.clone());
     conn.write::<ToServer>(&join, server_addr).await?;
-
     match conn.read::<FromServer>().await {
-        Ok((FromServer::Ack, _)) => {
-            println!("Connection established, {}!", name)
+        Ok((FromServer::Ack, src)) => {
+            if src == server_addr {
+                println!("Connection established, {}!", name)
+            } else {
+                return Err(anyhow::anyhow!("Unable to connect to the server. Goodbye!"));
+            }
         }
         _ => return Err(anyhow::anyhow!("Unable to connect to the server. Goodbye!")),
     }
