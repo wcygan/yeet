@@ -5,6 +5,7 @@ use std::sync::Arc;
 use tokio::net::UdpSocket;
 use tub::Pool;
 
+mod actors;
 mod args;
 
 #[tokio::main]
