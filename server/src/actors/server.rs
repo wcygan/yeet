@@ -57,8 +57,15 @@ impl Processor {
     pub async fn run(mut self) {
         while let Some((message, addr)) = self.chan.recv().await {
             match message {
-                ToServer::Join { .. } => {
-                    todo!()
+                ToServer::Join { name } => {
+                    // TODO: Add a new ClientHandle
+
+                    let _ = self
+                        .pool
+                        .acquire()
+                        .await
+                        .write::<FromServer>(&FromServer::Ack, addr)
+                        .await;
                 }
                 ToServer::Message { message } => {
                     let e = FromServer::Message { message };

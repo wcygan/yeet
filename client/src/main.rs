@@ -1,8 +1,9 @@
 use anyhow::Result;
 use clap::Parser;
 use common::{FromServer, Socket, ToServer};
-use std::io;
-use std::io::{BufRead, Write};
+use std::future::Future;
+use std::io::{self, BufRead, Write};
+use std::net::SocketAddr;
 use tokio::net::UdpSocket;
 
 mod args;
@@ -12,8 +13,15 @@ async fn main() -> Result<()> {
     let (mut conn, addr) = init().await?;
     let server_addr = addr.parse()?;
     let name = input("enter your name: ")?;
-    let join = ToServer::join(name);
+    let join = ToServer::join(name.clone());
     conn.write::<ToServer>(&join, server_addr).await?;
+
+    match conn.read::<FromServer>().await {
+        Ok((FromServer::Ack, _)) => {
+            println!("Connection established, {}!", name)
+        }
+        _ => return Err(anyhow::anyhow!("Unable to connect to the server. Goodbye!")),
+    }
 
     loop {
         let message = ToServer::message(input("> ")?);
