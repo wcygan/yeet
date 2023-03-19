@@ -6,12 +6,14 @@ use serde::Serialize;
 use std::net::SocketAddr;
 use tokio::net::UdpSocket;
 
-pub struct UdpConnection {
+/// A high-level UDP Socket that allows for writing and reading
+/// serializable types
+pub struct Socket {
     buffer: [u8; 512],
     socket: UdpSocket,
 }
 
-impl UdpConnection {
+impl Socket {
     pub fn new(socket: UdpSocket) -> Self {
         let buffer = [0; 512];
         Self { buffer, socket }

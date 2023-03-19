@@ -1,6 +1,6 @@
 use anyhow::Result;
 use clap::Parser;
-use common::{FromServer, ToServer, UdpConnection};
+use common::{FromServer, Socket, ToServer};
 use std::io;
 use std::io::{BufRead, Write};
 use tokio::net::UdpSocket;
@@ -17,14 +17,21 @@ async fn main() -> Result<()> {
         let s = get_input("> ")?;
         let e = ToServer::Message { message: s };
         conn.write::<ToServer>(&e, server_addr).await?;
-        let (_value, _) = conn.read::<FromServer>().await?;
+        let (value, _) = conn.read::<FromServer>().await?;
+
+        match value {
+            FromServer::Message { message } => {
+                println!("{}", message)
+            }
+            FromServer::Ping => {}
+        }
     }
 }
 
-async fn init() -> Result<(UdpConnection, String)> {
+async fn init() -> Result<(Socket, String)> {
     let args = args::Args::parse();
     let socket = UdpSocket::bind("0.0.0.0:0").await?;
-    Ok((UdpConnection::new(socket), args.address))
+    Ok((Socket::new(socket), args.address))
 }
 
 fn get_input(prompt: &str) -> Result<String> {
