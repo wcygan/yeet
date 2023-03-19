@@ -5,6 +5,7 @@ pub enum ToServer {
     Join { name: String },
     Message { message: String },
     Leave,
+    Pong,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
