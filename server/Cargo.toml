@@ -6,6 +6,7 @@ edition = "2021"
 [dependencies]
 common = { path = "../common" }
 anyhow.workspace = true
+clap.workspace = true
 futures.workspace = true
 moka.workspace = true
 tokio.workspace = true
