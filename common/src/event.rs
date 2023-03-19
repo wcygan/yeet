@@ -1,3 +1,4 @@
+use crate::ToServer::{Join, Message};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -8,9 +9,20 @@ pub enum ToServer {
     Pong,
 }
 
+impl ToServer {
+    pub fn join(name: String) -> ToServer {
+        Join { name }
+    }
+
+    pub fn message(message: String) -> ToServer {
+        Message { message }
+    }
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum FromServer {
     Message { message: String },
+    Ack,
     Ping,
 }
 

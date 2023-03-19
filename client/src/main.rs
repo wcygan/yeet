@@ -11,19 +11,20 @@ mod args;
 async fn main() -> Result<()> {
     let (mut conn, addr) = init().await?;
     let server_addr = addr.parse()?;
-    let _name = get_input("enter your name: ")?;
+    let name = input("enter your name: ")?;
+    let join = ToServer::join(name);
+    conn.write::<ToServer>(&join, server_addr).await?;
 
     loop {
-        let s = get_input("> ")?;
-        let e = ToServer::Message { message: s };
-        conn.write::<ToServer>(&e, server_addr).await?;
+        let message = ToServer::message(input("> ")?);
+        conn.write::<ToServer>(&message, server_addr).await?;
         let (value, _) = conn.read::<FromServer>().await?;
 
         match value {
             FromServer::Message { message } => {
                 println!("{}", message)
             }
-            FromServer::Ping => {}
+            _ => {}
         }
     }
 }
@@ -34,7 +35,7 @@ async fn init() -> Result<(Socket, String)> {
     Ok((Socket::new(socket), args.address))
 }
 
-fn get_input(prompt: &str) -> Result<String> {
+fn input(prompt: &str) -> Result<String> {
     print!("{}", prompt);
     io::stdout().flush()?;
     let mut s = String::new();
