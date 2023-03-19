@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+common = { path = "../common" }
 anyhow.workspace = true
 futures.workspace = true
 moka.workspace = true
