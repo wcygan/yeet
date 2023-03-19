@@ -1,5 +1,7 @@
 use anyhow::Result;
+use clap::builder::Str;
 use clap::Parser;
+use common::ToServer;
 use tokio::net::UdpSocket;
 
 mod args;
@@ -7,6 +9,10 @@ mod args;
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<()> {
     let (socket, addr) = init().await?;
+
+    let e = ToServer::Join {
+        name: String::from("Hello"),
+    };
 
     // Send "hello" & read the response into buffer
     let mut buffer = [0; 512];
