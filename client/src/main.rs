@@ -4,12 +4,11 @@ use clap::Parser;
 use common::{FromServer, Socket, ToServer};
 use lib_wc::sync::{ShutdownController, ShutdownListener};
 use std::io;
-use std::io::{stdin, BufRead, BufReader, Write};
+use std::io::{stdin, BufRead, Write};
 use std::net::SocketAddr;
 use std::time::Duration;
 use tokio::net::UdpSocket;
 use tokio::select;
-use tokio::sync::mpsc;
 
 mod args;
 mod keyboard_input;
@@ -17,7 +16,7 @@ mod keyboard_input;
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<()> {
     // TODO: wrap all of this data & the `process` fn inside of a struct :)
-    let (mut socket, addr) = init().await?;
+    let (socket, addr) = init().await?;
     let server_addr: SocketAddr = addr.parse()?;
 
     let name = input_sync("enter your name: ")?;
@@ -63,17 +62,17 @@ async fn process(
             },
             msg = socket.read::<FromServer>() => {
                 match msg {
-                    Ok((FromServer::Message { message }, addr)) => {
+                    Ok((FromServer::Message { message }, _addr)) => {
                         println!("{}", message)
                     },
-                    Ok((FromServer::Shutdown, addr)) => {
+                    Ok((FromServer::Shutdown, _addr)) => {
                         println!("the server told us to shutdown!");
                         return Ok(())
                     },
-                    Ok((FromServer::Ping, addr)) => {
-                        println!("ping")
+                    Ok((FromServer::Heartbeat, _addr)) => {
+                        println!("heartbeat received")
                     },
-                    Ok((FromServer::Ack, addr)) => {
+                    Ok((FromServer::Ack, _addr)) => {
                         println!("ack")
                     }
                     _ => {}
@@ -102,11 +101,11 @@ async fn join(
 
     let wait_for_response = tokio::time::timeout(Duration::from_secs(1), async move {
         match socket.read::<FromServer>().await {
-            Ok((FromServer::Ack, src)) => {
+            Ok((FromServer::Ack, _src)) => {
                 println!("Connection established, {}!", name);
-                return Ok::<(), anyhow::Error>(());
+                Ok::<(), anyhow::Error>(())
             }
-            _ => return Err(anyhow::anyhow!("Unable to connect to the server. Goodbye!")),
+            _ => Err(anyhow::anyhow!("Unable to connect to the server. Goodbye!")),
         }
     });
 

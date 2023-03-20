@@ -6,7 +6,7 @@ pub enum ToServer {
     Join { name: String },
     Message { message: String },
     Leave,
-    Pong,
+    KeepAlive,
 }
 
 impl ToServer {
@@ -23,8 +23,14 @@ impl ToServer {
 pub enum FromServer {
     Message { message: String },
     Ack,
-    Ping,
+    Heartbeat,
     Shutdown,
+}
+
+impl FromServer {
+    pub fn message(message: String) -> FromServer {
+        FromServer::Message { message }
+    }
 }
 
 #[cfg(test)]

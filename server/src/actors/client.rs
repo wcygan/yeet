@@ -1,4 +1,3 @@
-use anyhow::Result;
 use common::{FromServer, Socket};
 use std::net::SocketAddr;
 use std::sync::Arc;
