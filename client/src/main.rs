@@ -69,6 +69,7 @@ async fn process(
                 drop(shutdown);
                 return Ok(())
             },
+            // TODO: refactor this since it blocks on a thread & causes deadlock
             line = lines.next_line() => {
                 let s = line.unwrap().unwrap();
                 conn.write::<ToServer>(
