@@ -57,10 +57,16 @@ impl Listener {
 
 impl Processor {
     async fn run(mut self) {
+        // TODO: select loop:
+        //       1. heartbeat clients every 5 seconds
+        //         a. Set a TTL on clients and remove them if they don't respond quickly enough
+        //       2. wait for incoming messages
         while let Some((message, addr)) = self.chan.recv().await {
             match message {
                 ToServer::Join { name } => {
-                    println!("{} joined", name);
+                    let join_msg = format!("{} joined", name);
+                    self.send_all(addr, join_msg).await;
+
                     let pool = self.pool.clone();
                     let client = ClientHandle::new(name, addr, pool);
 
@@ -102,6 +108,7 @@ impl Processor {
         let e = FromServer::Message { message: m };
 
         for (_peer_addr, mut peer) in &mut self.clients {
+            println!("Sending {:?} to {}", e, peer.name());
             peer.send(from, e.clone()).await;
         }
     }

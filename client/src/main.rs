@@ -48,6 +48,7 @@ async fn process(
     while !sd.is_shutdown() {
         select! {
             _ = sd.recv() => {
+                leave(&mut socket, server_addr).await?;
                 break
             },
             line = chan.recv() => {
@@ -96,6 +97,13 @@ async fn join(socket: &mut Socket, server_addr: SocketAddr, name: String) -> Res
         _ => return Err(anyhow::anyhow!("Unable to connect to the server. Goodbye!")),
     }
 
+    Ok(())
+}
+
+async fn leave(socket: &mut Socket, server_addr: SocketAddr) -> Result<()> {
+    let _ = socket
+        .write::<ToServer>(&ToServer::Leave, server_addr)
+        .await;
     Ok(())
 }
 
