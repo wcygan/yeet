@@ -3,11 +3,12 @@ use clap::Parser;
 use common::{FromServer, Socket, ToServer};
 use lib_wc::sync::{ShutdownController, ShutdownListener};
 use std::future::Future;
-use std::io::{self, BufRead, Write};
+use std::io::{self, stdin, BufRead, BufReader, Write};
 use std::net::SocketAddr;
-use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::net::UdpSocket;
 use tokio::select;
+use tokio::sync::mpsc;
+
 mod args;
 
 #[tokio::main(flavor = "current_thread")]
@@ -51,7 +52,7 @@ fn input_sync(prompt: &str) -> Result<String> {
     print!("{}", prompt);
     io::stdout().flush()?;
     let mut s = String::new();
-    let _ = io::stdin().lock().read_line(&mut s)?;
+    let _ = stdin().lock().read_line(&mut s)?;
     Ok(s.trim().to_owned())
 }
 
@@ -60,8 +61,8 @@ async fn process(
     conn: &mut Socket,
     shutdown: &mut ShutdownListener,
 ) -> Result<()> {
-    let reader = BufReader::new(tokio::io::stdin());
-    let mut lines = reader.lines();
+    let (tx, mut rx) = mpsc::channel::<String>(10);
+    std::thread::spawn(move || get_input(tx));
     while !shutdown.is_shutdown() {
         select! {
             _ = shutdown.recv() => {
@@ -69,13 +70,16 @@ async fn process(
                 drop(shutdown);
                 return Ok(())
             },
-            // TODO: refactor this since it blocks on a thread & causes deadlock
-            line = lines.next_line() => {
-                let s = line.unwrap().unwrap();
-                conn.write::<ToServer>(
-                    &ToServer::Message { message: s },
-                    server_addr
-                );
+            line = rx.recv() => {
+                match line {
+                    Some(s) => {
+                        conn.write::<ToServer>(
+                            &ToServer::Message { message: s },
+                            server_addr
+                        );
+                    },
+                    None => {}
+                }
             },
             msg = conn.read::<FromServer>() => {
                 match msg {
@@ -94,4 +98,18 @@ async fn process(
         }
     }
     Ok(())
+}
+
+// Rewrite the client and build it around the pattern used here:
+// https://github.com/wcygan/lib-wc/blob/master/experiments/tokio-stdin-interrupt/src/main.rs
+fn get_input(tx: mpsc::Sender<String>) {
+    loop {
+        let reader = BufReader::new(stdin());
+        let mut lines = reader.lines();
+        if let Some(r) = lines.next() {
+            if let Ok(s) = r {
+                let _ = tx.blocking_send(s);
+            }
+        }
+    }
 }
