@@ -76,11 +76,9 @@ impl Processor {
                         .await;
                 }
                 ToServer::Message { message } => {
-                    println!("msg from {}: {}", addr, message);
-                    let e = FromServer::Message { message };
-                    for (peer_addr, mut peer) in &mut self.clients {
-                        println!("sending message to {}", peer_addr);
-                        peer.send(addr, e.clone()).await;
+                    if let Some(client) = self.clients.get(&addr) {
+                        let m = format!("{}: {}", client.name(), message);
+                        self.send_all(addr, m).await;
                     }
                 }
                 ToServer::Leave => match self.clients.remove(&addr) {
@@ -90,17 +88,21 @@ impl Processor {
                         let s = format!("{} left", name);
                         println!("{}", s);
 
-                        let e = FromServer::Message { message: s };
-
-                        for (_peer_addr, mut peer) in &mut self.clients {
-                            peer.send(addr, e.clone()).await;
-                        }
+                        self.send_all(addr, s).await;
                     }
                 },
                 ToServer::Pong => {
                     todo!()
                 }
             }
+        }
+    }
+
+    async fn send_all(&mut self, from: SocketAddr, m: String) {
+        let e = FromServer::Message { message: m };
+
+        for (_peer_addr, mut peer) in &mut self.clients {
+            peer.send(from, e.clone()).await;
         }
     }
 }
