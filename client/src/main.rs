@@ -42,7 +42,7 @@ async fn process(
     server_addr: SocketAddr,
     mut sd: ShutdownListener,
 ) -> Result<()> {
-    join(&mut socket, server_addr, name).await?;
+    join(&mut socket, server_addr, name, &mut sd).await?;
 
     let mut chan = recv_from_stdin();
     while !sd.is_shutdown() {
@@ -66,6 +66,10 @@ async fn process(
                     Ok((FromServer::Message { message }, addr)) => {
                         println!("{}", message)
                     },
+                    Ok((FromServer::Shutdown, addr)) => {
+                        println!("the server told us to shutdown!");
+                        return Ok(())
+                    },
                     Ok((FromServer::Ping, addr)) => {
                         println!("ping")
                     },
@@ -87,14 +91,35 @@ async fn init() -> Result<(Socket, String)> {
     Ok((Socket::new(socket), args.address))
 }
 
-async fn join(socket: &mut Socket, server_addr: SocketAddr, name: String) -> Result<()> {
+async fn join(
+    socket: &mut Socket,
+    server_addr: SocketAddr,
+    name: String,
+    shutdown: &mut ShutdownListener,
+) -> Result<()> {
     let join = ToServer::join(name.clone());
     socket.write::<ToServer>(&join, server_addr).await?;
-    match socket.read::<FromServer>().await {
-        Ok((FromServer::Ack, src)) => {
-            println!("Connection established, {}!", name)
+
+    let wait_for_response = tokio::time::timeout(Duration::from_secs(1), async move {
+        match socket.read::<FromServer>().await {
+            Ok((FromServer::Ack, src)) => {
+                println!("Connection established, {}!", name);
+                return Ok::<(), anyhow::Error>(());
+            }
+            _ => return Err(anyhow::anyhow!("Unable to connect to the server. Goodbye!")),
         }
-        _ => return Err(anyhow::anyhow!("Unable to connect to the server. Goodbye!")),
+    });
+
+    select! {
+        _ = shutdown.recv() => {
+            println!("Shutting down")
+        }
+        res = wait_for_response => {
+            if let Err(e) = res {
+                println!("Timeout expired");
+                return Err(e.into())
+            }
+        }
     }
 
     Ok(())

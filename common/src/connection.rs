@@ -31,4 +31,8 @@ impl Socket {
         let t = deserialize::<T>(self.buffer.as_slice())?;
         Ok((t, src))
     }
+
+    pub fn addr(&self) -> Result<SocketAddr> {
+        Ok(self.socket.local_addr()?)
+    }
 }

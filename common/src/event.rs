@@ -24,6 +24,7 @@ pub enum FromServer {
     Message { message: String },
     Ack,
     Ping,
+    Shutdown,
 }
 
 #[cfg(test)]

@@ -19,6 +19,7 @@ pub struct Listener {
 }
 
 struct Processor {
+    server_addr: SocketAddr,
     shutdown: ShutdownListener,
     pool: Arc<Pool<Socket>>,
     chan: tokio::sync::mpsc::Receiver<(ToServer, SocketAddr)>,
@@ -29,8 +30,9 @@ impl Listener {
     pub async fn new(shutdown: &ShutdownController) -> Result<Self> {
         let (mut listener, pool) = init().await?;
         let (tx, rx) = tokio::sync::mpsc::channel(100);
-
+        let server_addr = listener.addr()?;
         let processor = Processor {
+            server_addr,
             shutdown: shutdown.subscribe(),
             pool,
             chan: rx,
@@ -53,7 +55,6 @@ impl Listener {
                     println!("server listener shutting down")
                 }
                 res = self.socket.read::<ToServer>() => {
-                    println!("x");
                     match res {
                         Ok(tup) => {
                             // Pass the message to the processor
@@ -71,7 +72,6 @@ impl Listener {
 
 impl Processor {
     async fn run(mut self) {
-        // TODO: Add a shutdown handler
         // TODO: select loop:
         //       1. heartbeat clients every 5 seconds
         //         a. Set a TTL on clients and remove them if they don't respond quickly enough
@@ -80,10 +80,10 @@ impl Processor {
         while !self.shutdown.is_shutdown() {
             select! {
                 _ = self.shutdown.recv() => {
-                    println!("server processor shutting down")
+                    println!("server processor shutting down");
+                    self.tell_clients_to_shutdown().await;
                 },
                 option = self.chan.recv() => {
-                    println!("d");
                     if let Some((message, addr)) = option {
                         match message {
                             ToServer::Join { name } => {
@@ -133,9 +133,14 @@ impl Processor {
     async fn send_all(&mut self, from: SocketAddr, m: String) {
         let e = FromServer::Message { message: m };
 
-        for (_peer_addr, mut peer) in &mut self.clients {
-            println!("Sending {:?} to {}", e, peer.name());
+        for (_, mut peer) in &mut self.clients {
             peer.send(from, e.clone()).await;
+        }
+    }
+
+    async fn tell_clients_to_shutdown(&mut self) {
+        for (_, mut peer) in &mut self.clients {
+            peer.send(self.server_addr, FromServer::Shutdown).await;
         }
     }
 }
