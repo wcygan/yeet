@@ -59,6 +59,20 @@ async fn process(
                             server_addr
                     ).await;
                 }
+            },
+            msg = socket.read::<FromServer>() => {
+                match msg {
+                    Ok((FromServer::Message { message }, addr)) => {
+                        println!("{}", message)
+                    },
+                    Ok((FromServer::Ping, addr)) => {
+                        println!("ping")
+                    },
+                    Ok((FromServer::Ack, addr)) => {
+                        println!("ack")
+                    }
+                    _ => {}
+                }
             }
         }
     }
