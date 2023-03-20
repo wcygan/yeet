@@ -17,10 +17,10 @@ mod keyboard_input;
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<()> {
     // TODO: wrap all of this data & the `process` fn inside of a struct :)
-    let (mut conn, addr) = init().await?;
+    let (mut socket, addr) = init().await?;
     let server_addr: SocketAddr = addr.parse()?;
 
-    let name = input_sync("enter your name: ");
+    let name = input_sync("enter your name: ")?;
 
     let shutdown = ShutdownController::new();
     let listener = shutdown.subscribe();
@@ -30,13 +30,20 @@ async fn main() -> Result<()> {
             shutdown.shutdown().await;
             println!("Done!");
         },
-        _ = tokio::spawn(async { process(listener).await }) => {}
+        _ = tokio::spawn(async move { process(name, socket, server_addr, listener).await }) => {}
     }
 
     Ok(())
 }
 
-async fn process(mut sd: ShutdownListener) -> Result<()> {
+async fn process(
+    name: String,
+    mut socket: Socket,
+    server_addr: SocketAddr,
+    mut sd: ShutdownListener,
+) -> Result<()> {
+    join(&mut socket, server_addr, name).await?;
+
     let mut chan = recv_from_stdin();
     while !sd.is_shutdown() {
         select! {
@@ -45,7 +52,12 @@ async fn process(mut sd: ShutdownListener) -> Result<()> {
             },
             line = chan.recv() => {
                 if let Some(s) = line {
-                    println!("{s}")
+                    // TODO: handle this with retry?
+                    //       `backon` library?
+                    let _ = socket.write::<ToServer>(
+                        &ToServer::Message { message: s },
+                            server_addr
+                    ).await;
                 }
             }
         }
@@ -60,7 +72,7 @@ async fn init() -> Result<(Socket, String)> {
     Ok((Socket::new(socket), args.address))
 }
 
-async fn join(mut socket: Socket, server_addr: SocketAddr, name: String) -> Result<()> {
+async fn join(socket: &mut Socket, server_addr: SocketAddr, name: String) -> Result<()> {
     let join = ToServer::join(name.clone());
     socket.write::<ToServer>(&join, server_addr).await?;
     match socket.read::<FromServer>().await {
