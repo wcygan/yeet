@@ -1,9 +1,10 @@
 use crate::keyboard_input::recv_from_stdin;
 use anyhow::Result;
 use clap::Parser;
-use common::Socket;
+use common::{FromServer, Socket, ToServer};
 use lib_wc::sync::{ShutdownController, ShutdownListener};
-use std::io::{stdin, BufRead, BufReader};
+use std::io;
+use std::io::{stdin, BufRead, BufReader, Write};
 use std::net::SocketAddr;
 use std::time::Duration;
 use tokio::net::UdpSocket;
@@ -13,10 +14,14 @@ use tokio::sync::mpsc;
 mod args;
 mod keyboard_input;
 
-#[tokio::main]
+#[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<()> {
+    // TODO: wrap all of this data & the `process` fn inside of a struct :)
     let (mut conn, addr) = init().await?;
     let server_addr: SocketAddr = addr.parse()?;
+
+    let name = input_sync("enter your name: ");
+
     let shutdown = ShutdownController::new();
     let listener = shutdown.subscribe();
 
@@ -53,4 +58,25 @@ async fn init() -> Result<(Socket, String)> {
     let args = args::Args::parse();
     let socket = UdpSocket::bind("0.0.0.0:0").await?;
     Ok((Socket::new(socket), args.address))
+}
+
+async fn join(mut socket: Socket, server_addr: SocketAddr, name: String) -> Result<()> {
+    let join = ToServer::join(name.clone());
+    socket.write::<ToServer>(&join, server_addr).await?;
+    match socket.read::<FromServer>().await {
+        Ok((FromServer::Ack, src)) => {
+            println!("Connection established, {}!", name)
+        }
+        _ => return Err(anyhow::anyhow!("Unable to connect to the server. Goodbye!")),
+    }
+
+    Ok(())
+}
+
+fn input_sync(prompt: &str) -> Result<String> {
+    print!("{}", prompt);
+    io::stdout().flush()?;
+    let mut s = String::new();
+    let _ = stdin().lock().read_line(&mut s)?;
+    Ok(s.trim().to_owned())
 }
