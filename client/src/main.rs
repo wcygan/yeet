@@ -1,11 +1,13 @@
+use crate::keyboard_input::recv_from_stdin;
 use std::io::{stdin, BufRead, BufReader};
 use tokio::select;
 use tokio::sync::mpsc;
 
+mod keyboard_input;
+
 #[tokio::main]
 async fn main() {
-    let (tx, mut rx) = mpsc::channel::<String>(10);
-    std::thread::spawn(move || get_input(tx));
+    let mut chan = recv_from_stdin();
 
     loop {
         select! {
@@ -13,23 +15,11 @@ async fn main() {
                 println!("Done");
                 return;
             }
-            line = rx.recv() => {
+            line = chan.recv() => {
                 match line {
                     Some(s) => println!("{s}"),
                     None => {}
                 }
-            }
-        }
-    }
-}
-
-fn get_input(tx: mpsc::Sender<String>) {
-    loop {
-        let reader = BufReader::new(stdin());
-        let mut lines = reader.lines();
-        if let Some(r) = lines.next() {
-            if let Ok(s) = r {
-                let _ = tx.blocking_send(s);
             }
         }
     }
