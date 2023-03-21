@@ -11,6 +11,7 @@ use tokio::net::UdpSocket;
 use tokio::select;
 
 mod args;
+mod client;
 mod keyboard_input;
 
 #[tokio::main(flavor = "current_thread")]
