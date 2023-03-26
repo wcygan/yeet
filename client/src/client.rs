@@ -31,6 +31,11 @@ impl Client {
         let local_address = udp_socket.local_addr()?;
         let socket = Socket::new(udp_socket);
         let name = input_sync("enter your name: ")?;
+
+        if name.is_empty() {
+            return Err(anyhow::anyhow!("name cannot be empty"));
+        }
+
         Ok(Self {
             local_address,
             remote_address,
@@ -46,14 +51,11 @@ impl Client {
         let mut chan = recv_from_stdin();
 
         while !self.listener.is_shutdown() {
-            println!("looping");
             select! {
                 _ = self.listener.recv() => {
-                    println!("got shutdown");
                     self.leave_server().await?;
                 }
                 line = chan.recv() => {
-                    println!("asasd");
                     if let Some(s) = line {
                     // TODO: handle this with retry?
                     //       `backon` library?
@@ -61,7 +63,6 @@ impl Client {
                             &ToServer::Message { message: s },
                             self.remote_address
                         ).await;
-                        println!("asdasd");
                     }
                 }
                 msg = self.socket.read::<FromServer>() => {
@@ -126,12 +127,10 @@ impl Client {
     }
 
     async fn leave_server(&mut self) -> Result<()> {
-        println!("leaving");
         let _ = self
             .socket
             .write::<ToServer>(&ToServer::Leave, self.remote_address)
             .await;
-        println!("done");
         Ok(())
     }
 }

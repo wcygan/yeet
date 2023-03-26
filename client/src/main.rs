@@ -26,7 +26,9 @@ async fn main() -> Result<()> {
             shutdown.shutdown().await;
             println!("Done!");
         },
-        _ = client.process() => {}
+        res = tokio::spawn(async move { client.process().await }) => {
+            return res?
+        }
     }
 
     Ok(())
