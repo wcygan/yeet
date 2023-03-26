@@ -1,3 +1,4 @@
+use crate::client::Client;
 use crate::keyboard_input::recv_from_stdin;
 use anyhow::Result;
 use clap::Parser;
@@ -23,14 +24,14 @@ async fn main() -> Result<()> {
     let name = input_sync("enter your name: ")?;
 
     let shutdown = ShutdownController::new();
-    let listener = shutdown.subscribe();
+    let mut client = Client::new(shutdown.subscribe()).await?;
 
     select! {
         _ = tokio::signal::ctrl_c() => {
             shutdown.shutdown().await;
             println!("Done!");
         },
-        _ = tokio::spawn(async move { process(name, socket, server_addr, listener).await }) => {}
+        _ = client.process() => {}
     }
 
     Ok(())
