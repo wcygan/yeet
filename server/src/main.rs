@@ -7,6 +7,7 @@ use tokio::select;
 
 mod actors;
 mod args;
+mod time;
 
 #[tokio::main]
 async fn main() -> Result<()> {

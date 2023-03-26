@@ -76,7 +76,7 @@ impl Client {
                             return Ok(())
                         },
                         Ok((FromServer::Heartbeat, _addr)) => {
-                            println!("heartbeat received")
+                            self.keep_alive().await?
                         },
                         Ok((FromServer::Ack, _addr)) => {
                             println!("ack")
@@ -129,6 +129,12 @@ impl Client {
             .write::<ToServer>(&ToServer::Leave, self.remote_address)
             .await;
         Ok(())
+    }
+
+    async fn keep_alive(&mut self) -> Result<()> {
+        self.socket
+            .write::<ToServer>(&ToServer::KeepAlive, self.remote_address)
+            .await
     }
 }
 

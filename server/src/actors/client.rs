@@ -1,9 +1,12 @@
+use crate::time::{next_instant, EXPIRATION_TIME};
 use common::{FromServer, Socket};
 use std::net::SocketAddr;
 use std::sync::Arc;
+use tokio::time::Instant;
 use tub::Pool;
 
 pub struct ClientHandle {
+    expires: Instant,
     name: String,
     addr: SocketAddr,
     chan: tokio::sync::mpsc::Sender<FromServer>,
@@ -25,6 +28,7 @@ impl ClientHandle {
         });
 
         Self {
+            expires: next_instant(Instant::now(), EXPIRATION_TIME),
             name,
             addr,
             chan: tx,
