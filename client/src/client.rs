@@ -3,7 +3,7 @@ use crate::keyboard_input::recv_from_stdin;
 use anyhow::Result;
 use clap::Parser;
 use common::{FromServer, Socket, ToServer};
-use lib_wc::sync::{ShutdownController, ShutdownListener};
+use lib_wc::sync::ShutdownListener;
 use std::io;
 use std::io::{stdin, BufRead, Write};
 use std::net::SocketAddr;
@@ -13,6 +13,7 @@ use tokio::select;
 
 pub struct Client {
     /// The address of this client
+    #[allow(dead_code)]
     local_address: SocketAddr,
     /// The address of the chat server
     remote_address: SocketAddr,
@@ -91,11 +92,7 @@ impl Client {
 
     async fn join_server(&mut self) -> Result<()> {
         let Client {
-            local_address,
-            remote_address,
-            socket,
-            name,
-            listener,
+            socket, listener, ..
         } = self;
 
         let join = ToServer::join(self.name.clone());
