@@ -6,9 +6,9 @@ use tokio::time::Instant;
 use tub::Pool;
 
 pub struct ClientHandle {
-    expires: Instant,
+    pub expires: Instant,
     name: String,
-    addr: SocketAddr,
+    pub addr: SocketAddr,
     chan: tokio::sync::mpsc::Sender<FromServer>,
 }
 

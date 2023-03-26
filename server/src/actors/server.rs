@@ -4,6 +4,7 @@ use anyhow::Result;
 use clap::Parser;
 use common::{FromServer, Socket, ToServer};
 
+use crate::time::{next_instant, EXPIRATION_TIME};
 use lib_wc::sync::{ShutdownController, ShutdownListener};
 use std::collections::HashMap;
 use std::net::SocketAddr;
@@ -11,6 +12,7 @@ use std::sync::Arc;
 use std::time::Duration;
 use tokio::net::UdpSocket;
 use tokio::select;
+use tokio::time::Instant;
 use tub::Pool;
 
 static THREE_SECONDS: Duration = Duration::from_secs(3);
@@ -76,12 +78,29 @@ impl Listener {
 impl Processor {
     async fn run(mut self) {
         let mut heartbeat_timer =
-            tokio::time::interval_at(tokio::time::Instant::now() + THREE_SECONDS, THREE_SECONDS);
+            tokio::time::interval_at(Instant::now() + THREE_SECONDS, THREE_SECONDS);
         while !self.shutdown.is_shutdown() {
             select! {
                 _ = heartbeat_timer.tick() => {
-                    // TODO: Set a TTL on clients and remove them if they don't respond quickly enough
-                    println!("heartbeat")
+                    let now = Instant::now();
+                    self.send_all(self.server_addr, FromServer::Heartbeat).await;
+                    let mut peers_to_remove = vec![];
+
+                    for peer in self.clients.values_mut() {
+                        if peer.expires < now {
+                            println!("Killing {}", peer.name());
+                            peers_to_remove.push(peer.addr);
+                            kill(self.server_addr, peer).await;
+                        }
+                    }
+
+                    for peer in peers_to_remove {
+                        match self.clients.remove(&peer) {
+                            Some(_) => {}
+                            None => {println!("Couldn't remove {}", peer)}
+                        };
+                    }
+
                 }
                 _ = self.shutdown.recv() => {
                     println!("server processor shutting down");
@@ -92,7 +111,9 @@ impl Processor {
                         match message {
                             ToServer::Join { name } => {
                                 let join_msg = format!("{} joined", name);
-                                self.send_all(addr, join_msg).await;
+                                println!("{}", join_msg);
+                                let m = FromServer::message(join_msg);
+                                self.send_all(addr, m).await;
 
                                 let pool = self.pool.clone();
                                 let client = ClientHandle::new(name, addr, pool);
@@ -111,6 +132,7 @@ impl Processor {
                             ToServer::Message { message } => {
                                 if let Some(client) = self.clients.get(&addr) {
                                     let m = format!("{}: {}", client.name(), message);
+                                    let m = FromServer::message(m);
                                     self.send_all(addr, m).await;
                                 }
                             }
@@ -121,11 +143,14 @@ impl Processor {
                                     let s = format!("{} left", name);
                                     println!("{}", s);
 
+                                    let s = FromServer::message(s);
                                     self.send_all(addr, s).await;
                                 }
                             },
                             ToServer::KeepAlive => {
-                                todo!()
+                                if let Some(peer) = self.clients.get_mut(&addr) {
+                                    peer.expires = next_instant(peer.expires, EXPIRATION_TIME);
+                                }
                             }
                         }
                     }
@@ -134,19 +159,21 @@ impl Processor {
         }
     }
 
-    async fn send_all(&mut self, from: SocketAddr, m: String) {
-        let e = FromServer::message(m);
-
+    async fn send_all(&mut self, from: SocketAddr, message: FromServer) {
         for peer in self.clients.values_mut() {
-            peer.send(from, e.clone()).await;
+            peer.send(from, message.clone()).await;
         }
     }
 
     async fn tell_clients_to_shutdown(&mut self) {
         for peer in self.clients.values_mut() {
-            peer.send(self.server_addr, FromServer::Shutdown).await;
+            kill(self.server_addr, peer).await
         }
     }
+}
+
+async fn kill(from: SocketAddr, client: &mut ClientHandle) {
+    client.send(from, FromServer::Shutdown).await;
 }
 
 async fn init() -> Result<(Socket, Arc<Pool<Socket>>)> {

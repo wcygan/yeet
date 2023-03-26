@@ -1,9 +1,3 @@
-```
-             |                |-> client
-             |                |-> client
-listener   <-|->   server   <-|-> client
-             |                |-> client
-             |                |-> client
-             
-          accept          send msg
-```
+# Yap
+
+A (bad) UDP chat server

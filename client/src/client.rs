@@ -58,8 +58,6 @@ impl Client {
                 }
                 line = chan.recv() => {
                     if let Some(s) = line {
-                    // TODO: handle this with retry?
-                    //       `backon` library?
                         let _ = self.socket.write::<ToServer>(
                             &ToServer::Message { message: s },
                             self.remote_address
@@ -72,7 +70,7 @@ impl Client {
                             println!("{}", message)
                         },
                         Ok((FromServer::Shutdown, _addr)) => {
-                            println!("the server told us to shutdown!");
+                            println!("shutting down!");
                             return Ok(())
                         },
                         Ok((FromServer::Heartbeat, _addr)) => {
