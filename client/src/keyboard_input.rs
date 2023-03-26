@@ -13,6 +13,7 @@ pub fn recv_from_stdin() -> mpsc::Receiver<String> {
 
 fn block_on_stdin(tx: mpsc::Sender<String>) {
     loop {
+        println!("recv");
         let reader = BufReader::new(stdin());
         let mut lines = reader.lines();
         if let Some(Ok(s)) = lines.next() {
