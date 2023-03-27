@@ -2,7 +2,8 @@ use crate::actors::client::ClientHandle;
 use crate::args;
 use anyhow::Result;
 use clap::Parser;
-use common::{FromServer, Socket, ToServer};
+use common::{FromServer, ToServer};
+use sockit::UdpSocket;
 
 use crate::time::{next_instant, EXPIRATION_TIME};
 use lib_wc::sync::{ShutdownController, ShutdownListener};
@@ -10,7 +11,6 @@ use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::sync::Arc;
 use std::time::Duration;
-use tokio::net::UdpSocket;
 use tokio::select;
 use tokio::time::Instant;
 use tub::Pool;
@@ -19,14 +19,14 @@ static THREE_SECONDS: Duration = Duration::from_secs(3);
 
 pub struct Listener {
     shutdown: ShutdownListener,
-    socket: Socket,
+    socket: UdpSocket,
     chan: tokio::sync::mpsc::Sender<(ToServer, SocketAddr)>,
 }
 
 struct Processor {
     server_addr: SocketAddr,
     shutdown: ShutdownListener,
-    pool: Arc<Pool<Socket>>,
+    pool: Arc<Pool<UdpSocket>>,
     chan: tokio::sync::mpsc::Receiver<(ToServer, SocketAddr)>,
     clients: HashMap<SocketAddr, ClientHandle>,
 }
@@ -35,7 +35,7 @@ impl Listener {
     pub async fn new(shutdown: &ShutdownController) -> Result<Self> {
         let (listener, pool) = init().await?;
         let (tx, rx) = tokio::sync::mpsc::channel(100);
-        let server_addr = listener.addr()?;
+        let server_addr = listener.local_addr()?;
         let processor = Processor {
             server_addr,
             shutdown: shutdown.subscribe(),
@@ -176,18 +176,18 @@ async fn kill(from: SocketAddr, client: &mut ClientHandle) {
     client.send(from, FromServer::Shutdown).await;
 }
 
-async fn init() -> Result<(Socket, Arc<Pool<Socket>>)> {
+async fn init() -> Result<(UdpSocket, Arc<Pool<UdpSocket>>)> {
     let args = args::Args::parse();
-    let mut writers: Vec<Socket> = vec![];
+    let mut writers: Vec<UdpSocket> = vec![];
     for _ in 0..10 {
-        writers.push(Socket::new(get_socket(None).await?))
+        writers.push(get_socket(None).await?)
     }
 
     let listener = get_socket(Some(args.address)).await?;
     let addr = listener.local_addr()?;
     println!("Server started on {}", addr);
 
-    Ok((Socket::new(listener), Arc::new(writers.into())))
+    Ok((listener, Arc::new(writers.into())))
 }
 
 async fn get_socket(addr: Option<String>) -> Result<UdpSocket> {

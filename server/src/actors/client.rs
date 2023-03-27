@@ -1,5 +1,6 @@
 use crate::time::{next_instant, EXPIRATION_TIME};
-use common::{FromServer, Socket};
+use common::FromServer;
+use sockit::UdpSocket;
 use std::net::SocketAddr;
 use std::sync::Arc;
 use tokio::time::Instant;
@@ -14,12 +15,12 @@ pub struct ClientHandle {
 
 struct Client {
     addr: SocketAddr,
-    pool: Arc<Pool<Socket>>,
+    pool: Arc<Pool<UdpSocket>>,
     chan: tokio::sync::mpsc::Receiver<FromServer>,
 }
 
 impl ClientHandle {
-    pub fn new(name: String, addr: SocketAddr, pool: Arc<Pool<Socket>>) -> Self {
+    pub fn new(name: String, addr: SocketAddr, pool: Arc<Pool<UdpSocket>>) -> Self {
         let (tx, rx) = tokio::sync::mpsc::channel(100);
 
         let client = Client::new(addr, pool, rx);
@@ -49,7 +50,7 @@ impl ClientHandle {
 impl Client {
     fn new(
         addr: SocketAddr,
-        pool: Arc<Pool<Socket>>,
+        pool: Arc<Pool<UdpSocket>>,
         chan: tokio::sync::mpsc::Receiver<FromServer>,
     ) -> Self {
         Self { addr, pool, chan }

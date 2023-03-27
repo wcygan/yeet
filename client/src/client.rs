@@ -2,13 +2,13 @@ use crate::args;
 use crate::keyboard_input::recv_from_stdin;
 use anyhow::Result;
 use clap::Parser;
-use common::{FromServer, Socket, ToServer};
+use common::{FromServer, ToServer};
 use lib_wc::sync::ShutdownListener;
+use sockit::UdpSocket;
 use std::io;
 use std::io::{stdin, BufRead, Write};
 use std::net::SocketAddr;
 use std::time::Duration;
-use tokio::net::UdpSocket;
 use tokio::select;
 
 pub struct Client {
@@ -18,7 +18,7 @@ pub struct Client {
     /// The address of the chat server
     remote_address: SocketAddr,
     /// The UDP socket that reads and writes messages
-    socket: Socket,
+    socket: UdpSocket,
     /// The name of the user of this chat client
     name: String,
     /// The shutdown listener used to enable graceful shutdown
@@ -28,9 +28,8 @@ pub struct Client {
 impl Client {
     pub async fn new(listener: ShutdownListener) -> Result<Self> {
         let remote_address: SocketAddr = args::Args::parse().address.parse()?;
-        let udp_socket = UdpSocket::bind("0.0.0.0:0").await?;
-        let local_address = udp_socket.local_addr()?;
-        let socket = Socket::new(udp_socket);
+        let socket = UdpSocket::bind("0.0.0.0:0").await?;
+        let local_address = socket.local_addr()?;
         let name = input_sync("enter your name: ")?;
 
         if name.is_empty() {
@@ -132,7 +131,9 @@ impl Client {
     async fn keep_alive(&mut self) -> Result<()> {
         self.socket
             .write::<ToServer>(&ToServer::KeepAlive, self.remote_address)
-            .await
+            .await?;
+
+        Ok(())
     }
 }
 

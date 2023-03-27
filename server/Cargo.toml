@@ -15,3 +15,4 @@ serde.workspace = true
 bincode.workspace = true
 dashmap.workspace = true
 lib-wc.workspace = true
+sockit.workspace = true
