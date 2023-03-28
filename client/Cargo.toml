@@ -10,3 +10,4 @@ clap.workspace = true
 tokio.workspace = true
 lib-wc.workspace = true
 sockit.workspace = true
+async-stdin = "0.3.1"

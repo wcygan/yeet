@@ -1,6 +1,6 @@
 use crate::args;
-use crate::keyboard_input::recv_from_stdin;
 use anyhow::Result;
+use async_stdin::recv_from_stdin;
 use clap::Parser;
 use common::{FromServer, ToServer};
 use lib_wc::sync::ShutdownListener;
@@ -48,7 +48,7 @@ impl Client {
     pub async fn process(&mut self) -> Result<()> {
         self.join_server().await?;
 
-        let mut chan = recv_from_stdin();
+        let mut chan = recv_from_stdin(10);
 
         while !self.listener.is_shutdown() {
             select! {
