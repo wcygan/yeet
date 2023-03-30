@@ -14,5 +14,6 @@ tub.workspace = true
 serde.workspace = true
 bincode.workspace = true
 dashmap.workspace = true
-lib-wc.workspace = true
+shutdown-async.workspace = true
+async-throttle.workspace = true
 sockit.workspace = true

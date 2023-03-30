@@ -1,7 +1,7 @@
 use crate::actors::Listener;
 use anyhow::Result;
 
-use lib_wc::sync::ShutdownController;
+use shutdown_async::ShutdownController;
 
 use tokio::select;
 

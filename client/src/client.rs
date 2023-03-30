@@ -3,7 +3,7 @@ use anyhow::Result;
 use async_stdin::recv_from_stdin;
 use clap::Parser;
 use common::{FromServer, ToServer};
-use lib_wc::sync::ShutdownListener;
+use shutdown_async::ShutdownMonitor;
 use sockit::UdpSocket;
 use std::io;
 use std::io::{stdin, BufRead, Write};
@@ -22,11 +22,11 @@ pub struct Client {
     /// The name of the user of this chat client
     name: String,
     /// The shutdown listener used to enable graceful shutdown
-    listener: ShutdownListener,
+    listener: ShutdownMonitor,
 }
 
 impl Client {
-    pub async fn new(listener: ShutdownListener) -> Result<Self> {
+    pub async fn new(listener: ShutdownMonitor) -> Result<Self> {
         let remote_address: SocketAddr = args::Args::parse().address.parse()?;
         let socket = UdpSocket::bind("0.0.0.0:0").await?;
         let local_address = socket.local_addr()?;

@@ -6,7 +6,7 @@ use common::{FromServer, ToServer};
 use sockit::UdpSocket;
 
 use crate::time::{next_instant, EXPIRATION_TIME};
-use lib_wc::sync::{ShutdownController, ShutdownListener};
+use shutdown_async::{ShutdownController, ShutdownMonitor};
 use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::sync::Arc;
@@ -18,14 +18,14 @@ use tub::Pool;
 static THREE_SECONDS: Duration = Duration::from_secs(3);
 
 pub struct Listener {
-    shutdown: ShutdownListener,
+    shutdown: ShutdownMonitor,
     socket: UdpSocket,
     chan: tokio::sync::mpsc::Sender<(ToServer, SocketAddr)>,
 }
 
 struct Processor {
     server_addr: SocketAddr,
-    shutdown: ShutdownListener,
+    shutdown: ShutdownMonitor,
     pool: Arc<Pool<UdpSocket>>,
     chan: tokio::sync::mpsc::Receiver<(ToServer, SocketAddr)>,
     clients: HashMap<SocketAddr, ClientHandle>,
