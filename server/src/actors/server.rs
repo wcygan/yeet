@@ -109,13 +109,9 @@ impl Processor {
                     if let Some((message, addr)) = option {
                         match message {
                             ToServer::Join { name } => {
-                                let join_msg = format!("{} joined", name);
-                                println!("{}", join_msg);
-                                let m = FromServer::message(join_msg);
-                                self.send_all(addr, m).await;
-
+                                println!("Sending ACK to {} for joining", name);
                                 let pool = self.pool.clone();
-                                let client = ClientHandle::new(name, addr, pool);
+                                let client = ClientHandle::new(name.clone(), addr, pool);
 
                                 // Add the client
                                 self.clients.insert(addr, client);
@@ -127,6 +123,11 @@ impl Processor {
                                     .await
                                     .write::<FromServer>(&FromServer::Ack, addr)
                                     .await;
+
+                                let join_msg = format!("{} joined", name);
+                                println!("{}", join_msg);
+                                let m = FromServer::message(join_msg);
+                                self.send_all(addr, m).await;
                             }
                             ToServer::Message { message } => {
                                 if let Some(client) = self.clients.get(&addr) {

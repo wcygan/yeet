@@ -94,7 +94,7 @@ impl Client {
         let join = ToServer::join(self.name.clone());
         socket.write::<ToServer>(&join, self.remote_address).await?;
 
-        let wait_for_response = tokio::time::timeout(Duration::from_secs(1), async move {
+        let wait_for_response = tokio::time::timeout(Duration::from_secs(6), async move {
             match socket.read::<FromServer>().await {
                 Ok((FromServer::Ack, _src)) => {
                     println!("Connection established!");
