@@ -48,9 +48,9 @@ dependencies = [
 
 [[package]]
 name = "async-throttle"
-version = "0.3.1"
+version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0ca7e05b57d0d8ce746acabb63b574fc37c936e3d38da68661d4883088589da1"
+checksum = "1c99532de164435a0b91279e715bff4fa0d164643b409a67761907ffc210ee8f"
 dependencies = [
  "backoff",
  "dashmap",
@@ -195,12 +195,11 @@ name = "client"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "async-stdin",
  "clap",
  "common",
- "shutdown-async",
  "sockit",
  "tokio",
+ "tokio-utils",
 ]
 
 [[package]]
@@ -909,7 +908,6 @@ name = "server"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "async-throttle",
  "bincode",
  "clap",
  "common",
@@ -917,17 +915,16 @@ dependencies = [
  "futures",
  "moka",
  "serde",
- "shutdown-async",
  "sockit",
  "tokio",
- "tub",
+ "tokio-utils",
 ]
 
 [[package]]
 name = "shutdown-async"
-version = "0.1.0"
+version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "91f4f55f8eb48f809b6cd3a5fee23bee7b752637c04100a0df802f782c709028"
+checksum = "e2799e69bde7e68bedd86c6d94bffa783219114f1f31435ddda61f4aeba348ff"
 dependencies = [
  "tokio",
 ]
@@ -1101,6 +1098,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "tokio-utils"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ac49b3fdb2ea7caa5c166555aec3306da67c9f2b7165da99ab7b8a8c444059ff"
+dependencies = [
+ "async-stdin",
+ "async-throttle",
+ "shutdown-async",
+ "tub",
+]
+
+[[package]]
 name = "triomphe"
 version = "0.1.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1108,9 +1117,9 @@ checksum = "f1ee9bd9239c339d714d657fac840c6d2a4f9c45f4f9ec7b0975113458be78db"
 
 [[package]]
 name = "tub"
-version = "0.3.5"
+version = "0.3.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d50cd581ab02efca4e592025ed3ca8453d4ad02359aebe957046b0398c024373"
+checksum = "6bca43faba247bc76eb1d6c1b8b561e4a1c5bdd427cc3d7a007faabea75c683a"
 dependencies = [
  "crossbeam-queue",
  "tokio",

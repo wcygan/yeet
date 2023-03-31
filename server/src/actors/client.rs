@@ -4,7 +4,7 @@ use sockit::UdpSocket;
 use std::net::SocketAddr;
 use std::sync::Arc;
 use tokio::time::Instant;
-use tub::Pool;
+use tokio_utils::Pool;
 
 pub struct ClientHandle {
     pub expires: Instant,

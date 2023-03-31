@@ -1,15 +1,14 @@
 use crate::args;
 use anyhow::Result;
-use async_stdin::recv_from_stdin;
 use clap::Parser;
 use common::{FromServer, ToServer};
-use shutdown_async::ShutdownMonitor;
 use sockit::UdpSocket;
 use std::io;
 use std::io::{stdin, BufRead, Write};
 use std::net::SocketAddr;
 use std::time::Duration;
 use tokio::select;
+use tokio_utils::{recv_from_stdin, ShutdownMonitor};
 
 pub struct Client {
     /// The address of this client

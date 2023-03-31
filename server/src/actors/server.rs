@@ -6,14 +6,13 @@ use common::{FromServer, ToServer};
 use sockit::UdpSocket;
 
 use crate::time::{next_instant, EXPIRATION_TIME};
-use shutdown_async::{ShutdownController, ShutdownMonitor};
 use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::select;
 use tokio::time::Instant;
-use tub::Pool;
+use tokio_utils::{Pool, ShutdownController, ShutdownMonitor};
 
 static THREE_SECONDS: Duration = Duration::from_secs(3);
 

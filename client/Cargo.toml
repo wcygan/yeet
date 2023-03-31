@@ -5,9 +5,8 @@ edition = "2021"
 
 [dependencies]
 common = { path = "../common" }
+tokio-utils.workspace = true
 anyhow.workspace = true
 clap.workspace = true
 tokio.workspace = true
-shutdown-async.workspace = true
 sockit.workspace = true
-async-stdin.workspace = true

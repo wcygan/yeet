@@ -1,7 +1,7 @@
 use crate::actors::Listener;
 use anyhow::Result;
 
-use shutdown_async::ShutdownController;
+use tokio_utils::ShutdownController;
 
 use tokio::select;
 
